@@ -1,0 +1,32 @@
+# Python バイトコードとキャッシュ
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 仮想環境
+_venv/
+venv/
+ENV/
+env/
+.Python
+
+# 実行時一時ファイル・ログ
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# テンポラリディレクトリ（fetch_pokemon/temp など）
+fetch_pokemon/temp/
+ep_registry/temp/
+
+# IDE / エディタ関連
+.vscode/
+.idea/
+*.code-workspace

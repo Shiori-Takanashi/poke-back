@@ -1,0 +1,217 @@
+[
+    {
+        "category": "berry",
+        "name": "berry",
+        "url": "https://pokeapi.co/api/v2/berry/"
+    },
+    {
+        "category": "berry",
+        "name": "berry-firmness",
+        "url": "https://pokeapi.co/api/v2/berry-firmness/"
+    },
+    {
+        "category": "berry",
+        "name": "berry-flavor",
+        "url": "https://pokeapi.co/api/v2/berry-flavor/"
+    },
+    {
+        "category": "contest",
+        "name": "contest-type",
+        "url": "https://pokeapi.co/api/v2/contest-type/"
+    },
+    {
+        "category": "contest",
+        "name": "contest-effect",
+        "url": "https://pokeapi.co/api/v2/contest-effect/"
+    },
+    {
+        "category": "contest",
+        "name": "super-contest-effect",
+        "url": "https://pokeapi.co/api/v2/super-contest-effect/"
+    },
+    {
+        "category": "encounter",
+        "name": "encounter-method",
+        "url": "https://pokeapi.co/api/v2/encounter-method/"
+    },
+    {
+        "category": "encounter",
+        "name": "encounter-condition",
+        "url": "https://pokeapi.co/api/v2/encounter-condition/"
+    },
+    {
+        "category": "encounter",
+        "name": "encounter-condition-value",
+        "url": "https://pokeapi.co/api/v2/encounter-condition-value/"
+    },
+    {
+        "category": "evolution",
+        "name": "evolution-chain",
+        "url": "https://pokeapi.co/api/v2/evolution-chain/"
+    },
+    {
+        "category": "evolution",
+        "name": "evolution-trigger",
+        "url": "https://pokeapi.co/api/v2/evolution-trigger/"
+    },
+    {
+        "category": "game",
+        "name": "generation",
+        "url": "https://pokeapi.co/api/v2/generation/"
+    },
+    {
+        "category": "game",
+        "name": "pokedex",
+        "url": "https://pokeapi.co/api/v2/pokedex/"
+    },
+    {
+        "category": "game",
+        "name": "version",
+        "url": "https://pokeapi.co/api/v2/version/"
+    },
+    {
+        "category": "game",
+        "name": "version-group",
+        "url": "https://pokeapi.co/api/v2/version-group/"
+    },
+    {
+        "category": "item",
+        "name": "item",
+        "url": "https://pokeapi.co/api/v2/item/"
+    },
+    {
+        "category": "item",
+        "name": "item-attribute",
+        "url": "https://pokeapi.co/api/v2/item-attribute/"
+    },
+    {
+        "category": "item",
+        "name": "item-fling-effect",
+        "url": "https://pokeapi.co/api/v2/item-fling-effect/"
+    },
+    {
+        "category": "item",
+        "name": "item-pocket",
+        "url": "https://pokeapi.co/api/v2/item-pocket/"
+    },
+    {
+        "category": "location",
+        "name": "location",
+        "url": "https://pokeapi.co/api/v2/location/"
+    },
+    {
+        "category": "location",
+        "name": "location-area",
+        "url": "https://pokeapi.co/api/v2/location-area/"
+    },
+    {
+        "category": "location",
+        "name": "pal-park-area",
+        "url": "https://pokeapi.co/api/v2/pal-park-area/"
+    },
+    {
+        "category": "location",
+        "name": "region",
+        "url": "https://pokeapi.co/api/v2/region/"
+    },
+    {
+        "category": "machine",
+        "name": "machine",
+        "url": "https://pokeapi.co/api/v2/machine/"
+    },
+    {
+        "category": "move",
+        "name": "move",
+        "url": "https://pokeapi.co/api/v2/move/"
+    },
+    {
+        "category": "move",
+        "name": "move-ailment",
+        "url": "https://pokeapi.co/api/v2/move-ailment/"
+    },
+    {
+        "category": "move",
+        "name": "move-battle-style",
+        "url": "https://pokeapi.co/api/v2/move-battle-style/"
+    },
+    {
+        "category": "move",
+        "name": "move-category",
+        "url": "https://pokeapi.co/api/v2/move-category/"
+    },
+    {
+        "category": "move",
+        "name": "move-damage-class",
+        "url": "https://pokeapi.co/api/v2/move-damage-class/"
+    },
+    {
+        "category": "move",
+        "name": "move-learn-method",
+        "url": "https://pokeapi.co/api/v2/move-learn-method/"
+    },
+    {
+        "category": "move",
+        "name": "move-target",
+        "url": "https://pokeapi.co/api/v2/move-target/"
+    },
+    {
+        "category": "pokemon",
+        "name": "ability",
+        "url": "https://pokeapi.co/api/v2/ability/"
+    },
+    {
+        "category": "pokemon",
+        "name": "characteristic",
+        "url": "https://pokeapi.co/api/v2/characteristic/"
+    },
+    {
+        "category": "pokemon",
+        "name": "egg-group",
+        "url": "https://pokeapi.co/api/v2/egg-group/"
+    },
+    {
+        "category": "pokemon",
+        "name": "gender",
+        "url": "https://pokeapi.co/api/v2/gender/"
+    },
+    {
+        "category": "pokemon",
+        "name": "growth-rate",
+        "url": "https://pokeapi.co/api/v2/growth-rate/"
+    },
+    {
+        "category": "pokemon",
+        "name": "nature",
+        "url": "https://pokeapi.co/api/v2/nature/"
+    },
+    {
+        "category": "pokemon",
+        "name": "pokemon",
+        "url": "https://pokeapi.co/api/v2/pokemon/"
+    },
+    {
+        "category": "pokemon",
+        "name": "pokemon-form",
+        "url": "https://pokeapi.co/api/v2/pokemon-form/"
+    },
+    {
+        "category": "pokemon",
+        "name": "pokemon-habitat",
+        "url": "https://pokeapi.co/api/v2/pokemon-habitat/"
+    },
+    {
+        "category": "pokemon",
+        "name": "pokemon-species",
+        "url": "https://pokeapi.co/api/v2/pokemon-species/"
+    },
+    {
+        "category": "other",
+        "name": "stat",
+        "url": "https://pokeapi.co/api/v2/stat/"
+    },
+    {
+        "category": "other",
+        "name": "type",
+        "url": "https://pokeapi.co/api/v2/type/"
+    }
+]
