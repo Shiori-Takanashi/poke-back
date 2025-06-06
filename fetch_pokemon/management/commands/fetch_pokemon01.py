@@ -51,6 +51,11 @@ class Command(BaseCommand):
         f_file_path = dir_path / "form_idxs.txt"
 
         result = asyncio.run(self.request_of_urls(s_ep, p_ep, f_ep, s_file_path, p_file_path, f_file_path))
+
+        s_total, p_total, f_total = self.get_totals(s_file_path, p_file_path, f_file_path)
+        s_count, p_count, f_count = asyncio.run(self.get_counts(s_ep, p_ep, f_ep))
+
+
         if result:
             self.stdout.write("Index files have been created successfully.")
         else:
@@ -114,18 +119,17 @@ class Command(BaseCommand):
     def get_totals(self, s_file_path, p_file_path, f_file_path):
         try:
             with open(s_file_path, "r", encoding="utf-8") as file:
-                s_count = len(file.readlines())
+                s_total = len(file.readlines())
             with open(p_file_path, "r", encoding="utf-8") as file:
-                p_count = len(file.readlines())
+                p_total = len(file.readlines())
             with open(f_file_path, "r", encoding="utf-8") as file:
-                f_count = len(file.readlines())
-            return s_count, p_count, f_count
+                f_total = len(file.readlines())
+            return s_total, p_total, f_total
         except FileNotFoundError as e:
             self.stderr.write(f"File not found: {e}")
             return 0, 0, 0
 
     async with def get_counts(self, s_url, p_url, f_url):
-
         async with aiohttp.ClientSession() as session:
             tasks = [
                 self.get_count(s_url, session),
