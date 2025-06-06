@@ -1,14 +1,43 @@
+# ------------------
+# コマンドの基本インポート
+# ------------------
+
+# クラス定義の順序の自由化のインポート
 from __future__ import annotations
-from django.core.management.base import BaseCommand
-import asyncio, aiohttp
-import json
+
+# 必須級のインポート
 from pathlib import Path
+from utils.cmd_logger_setup import setup_logger
+
+# 同期処理のインポート（出来れば使わない。非同期の練習のため。）
+import requests
+
+# Json処理のインポート
+import json
+
+# 非同期処理のインポート（簡単な処理でも非同期を練習したい。）
+import asyncio
+import aiohttp
+import aiofiles # json処理と併用することが多いはず。
+
+# Djangoコマンドのインポート
+from django.core.management.base import BaseCommand
+
+# モデルのインポート
 from ep_registry.models import Endpoint
 from fetch_pokemon.models import PokemonSpecies, Pokemon, PokemonForm
+
+# コマンド用のロガーをセットアップ（引数はコマンド名）
+logger = setup_logger(__name__.split('.')[-1])
+
+# ------------------
+# コマンドクラスの定義
+# ------------------
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
+        logger.start("処理開始")
         if not self.check_using_flag():
             self.stderr.write("Using flag is not set correctly for required endpoints.")
             return
@@ -26,6 +55,7 @@ class Command(BaseCommand):
             self.stdout.write("Index files have been created successfully.")
         else:
             self.stderr.write("An error occurred while creating index files.")
+        logger.finish("処理完了")
 
 
 

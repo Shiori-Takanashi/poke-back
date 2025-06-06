@@ -1,0 +1,44 @@
+# ------------------
+# コマンドの基本インポート
+# ------------------
+
+# クラス定義の順序の自由化のインポート
+from __future__ import annotations
+
+# 必須級のインポート
+import time # コマンドの処理時間を計測するため
+from pathlib import Path
+from utils.cmd_logger_setup import setup_logger
+
+# 同期処理のインポート（出来れば使わない）
+import requests
+
+# Json処理のインポート
+import json
+
+# 非同期処理のインポート（簡単な処理でも非同期を練習したい）
+import asyncio
+import aiohttp
+import aiofiles # json処理と併用するはず
+
+# Djangoコマンドのインポート
+from django.core.management.base import BaseCommand
+
+# モデルのインポート
+from ep_registry.models import Endpoint
+from fetch_pokemon.models import PokemonSpecies, Pokemon, PokemonForm
+
+# コマンド用のロガーをセットアップ（引数はコマンド名）
+logger = setup_logger(__name__.split('.')[-1])
+
+# ------------------
+# コマンドクラスの定義
+# ------------------
+
+class Command(BaseCommand):
+
+    def handle(self, *args, **options):
+
+        logger.start("処理開始")
+
+        logger.finish("処理完了")
