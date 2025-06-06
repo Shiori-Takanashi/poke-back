@@ -10,7 +10,7 @@ from pathlib import Path
 from utils.cmd_logger_setup import setup_logger
 
 # 同期処理のインポート（出来れば使わない。非同期の練習のため。）
-import requests
+# import requests
 
 # Json処理のインポート
 import json
@@ -18,7 +18,7 @@ import json
 # 非同期処理のインポート（簡単な処理でも非同期を練習したい。）
 import asyncio
 import aiohttp
-import aiofiles # json処理と併用することが多いはず。
+# import aiofiles # json処理と併用することが多いはず。
 
 # Djangoコマンドのインポート
 from django.core.management.base import BaseCommand
@@ -46,11 +46,11 @@ class Command(BaseCommand):
         dir_path = Path(__file__).resolve().parent.parent.parent / "temp"
         dir_path.mkdir(exist_ok=True)
 
-        self.s_file_path = dir_path / "species_idxs.txt"
-        self.p_file_path = dir_path / "pokemon_idxs.txt"
-        self.f_file_path = dir_path / "form_idxs.txt"
+        s_file_path = dir_path / "species_idxs.txt"
+        p_file_path = dir_path / "pokemon_idxs.txt"
+        f_file_path = dir_path / "form_idxs.txt"
 
-        result = asyncio.run(self.request_of_urls(s_ep, p_ep, f_ep))
+        result = asyncio.run(self.request_of_urls(s_ep, p_ep, f_ep, s_file_path, p_file_path, f_file_path))
         if result:
             self.stdout.write("Index files have been created successfully.")
         else:
@@ -75,12 +75,12 @@ class Command(BaseCommand):
             raise ValueError("必要なエンドポイントが見つかりません。")
         return s_ep, p_ep, f_ep
 
-    async def request_of_urls(self, s_ep, p_ep, f_ep):
+    async def request_of_urls(self, s_ep, p_ep, f_ep, s_file_path, p_file_path, f_file_path):
         async with aiohttp.ClientSession() as session:
             tasks = [
-                self.get_existing_idxs(s_ep, self.s_file_path, session),
-                self.get_existing_idxs(p_ep, self.p_file_path, session),
-                self.get_existing_idxs(f_ep, self.f_file_path, session)
+                self.get_existing_idxs(s_ep, s_file_path, session),
+                self.get_existing_idxs(p_ep, p_file_path, session),
+                self.get_existing_idxs(f_ep, f_file_path, session)
             ]
             results = await asyncio.gather(*tasks)
             if all(results):
@@ -92,7 +92,7 @@ class Command(BaseCommand):
 
     async def get_existing_idxs(self, base_url, filepath, session):
         existing_idxs = set()
-        url = f"{base_url}?limit=100"
+        url = f"{base_url}?limit=3000"
         while True:
             try:
                 async with session.get(url) as response:
@@ -110,3 +110,37 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stderr.write(f"Error fetching {base_url}: {e}")
                 return False
+
+    def get_totals(self, s_file_path, p_file_path, f_file_path):
+        try:
+            with open(s_file_path, "r", encoding="utf-8") as file:
+                s_count = len(file.readlines())
+            with open(p_file_path, "r", encoding="utf-8") as file:
+                p_count = len(file.readlines())
+            with open(f_file_path, "r", encoding="utf-8") as file:
+                f_count = len(file.readlines())
+            return s_count, p_count, f_count
+        except FileNotFoundError as e:
+            self.stderr.write(f"File not found: {e}")
+            return 0, 0, 0
+
+    async with def get_counts(self, s_url, p_url, f_url):
+
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                self.get_count(s_url, session),
+                self.get_count(p_url, session),
+                self.get_count(f_url, session)
+            ]
+        return s_count, p_count, f_count = await asyncio.gather(*tasks)
+
+    async with def get_count(self, url, session):
+        count = 0
+        try:
+            with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    count = data["count"]
+        except Exception as e:
+            self.stderr.write(f"Error fetching count from {url}: {e}")
+        return count
