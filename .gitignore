@@ -11,9 +11,7 @@ env/
 .Python
 
 # 実行時一時ファイル・ログ
-*.log
 *.tmp
-*.temp
 *.bak
 *.swp
 *.swo
@@ -30,3 +28,5 @@ ep_registry/temp/
 .vscode/
 .idea/
 *.code-workspace
+
+_lesson/*

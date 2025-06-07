@@ -59,7 +59,7 @@ if not hasattr(logging.Logger, "finish"):
     logging.Logger.finish = finish
 
 # ロガーをセットアップする関数
-def setup_logger(app_name: str, base_log_dir: Path = Path("logs"), level=logging.DEBUG) -> logging.Logger:
+def setup_logger_file(app_name: str, base_log_dir: Path = Path("logs"), level=logging.DEBUG) -> logging.Logger:
     """
     アプリごとのロガーをセットアップする。
 
@@ -86,10 +86,6 @@ def setup_logger(app_name: str, base_log_dir: Path = Path("logs"), level=logging
         datefmt="%Y-%m-%d %H:%M:%S.%f",  # %fが、マイクロ秒を示す。
     )
 
-    # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
     # File handler（タイムローテート・秒付き）
     file_handler = PreciseTimedRotatingFileHandler(
         filename=str(log_dir / f"{app_name}.log"),
@@ -100,7 +96,6 @@ def setup_logger(app_name: str, base_log_dir: Path = Path("logs"), level=logging
     )
     file_handler.setFormatter(formatter)
 
-    logger.addHandler(console_handler)
     logger.addHandler(file_handler)
 
     return logger
