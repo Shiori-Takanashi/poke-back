@@ -1,150 +1,273 @@
 # ------------------
-# コマンドの基本インポート
+# imports
 # ------------------
-
-# クラス定義の順序の自由化のインポート
 from __future__ import annotations
 
-# 必須級のインポート
-from pathlib import Path
-from utils.cmd_logger_setup import setup_logger
-
-# 同期処理のインポート（出来れば使わない。非同期の練習のため。）
-# import requests
-
-# Json処理のインポート
-import json
-
-# 非同期処理のインポート（簡単な処理でも非同期を練習したい。）
 import asyncio
-import aiohttp
-# import aiofiles # json処理と併用することが多いはず。
+from pathlib import Path
 
-# Djangoコマンドのインポート
+import aiohttp
 from django.core.management.base import BaseCommand
 
-# モデルのインポート
+from utils.cmd_logger_file import setup_logger_file
 from ep_registry.models import Endpoint
-from fetch_pokemon.models import PokemonSpecies, Pokemon, PokemonForm
 
-# コマンド用のロガーをセットアップ（引数はコマンド名）
-logger = setup_logger(__name__.split('.')[-1])
+file_logger = setup_logger_file(__name__.split('.')[-1])
+
+# ---------- 定数 ----------
+# DBに登録する際の名前, エンドポイント名、のタプルです。
+# DBでpokemon-がついていると面倒であり、
+# かつ、最終的にspfのデータはmonsterモデルに統合されます。
+# ポケモンプレイヤーの私が悩んで考えた結果、
+# このような区分が必要だという結論です。
+# 特殊なポケモンの扱いが難しいのです。
+# pokemon-を略した形式を「登録名」と呼ぶことにします。
+
+EP_TYPES: list[tuple[str, str]] = [
+    ("species", "pokemon-species"),
+    ("pokemon", "pokemon"),
+    ("form",    "pokemon-form"),
+]
 
 # ------------------
-# コマンドクラスの定義
+# Django 管理コマンド
 # ------------------
-
 class Command(BaseCommand):
+    """
+    temp フォルダに xxx_idxs.txt を生成し、
+    API の count とファイル行数の一致を検証する。
+    不一致でも処理は正常終了する。
+    """
 
+    # ---------- エントリポイント ----------
     def handle(self, *args, **options):
         logger.start("処理開始")
-        if not self.check_using_flag():
-            self.stderr.write("Using flag is not set correctly for required endpoints.")
+
+        # 準備
+        temp_dir = Path(__file__).resolve().parent.parent.parent / "temp"
+        temp_dir.mkdir(exist_ok=True)
+
+        # 関数01
+        if self._check_flags():
+            file_logger.info("1.フラグ有効化、確認。")
+            self.stdout("1.フラグ有効化、確認。")
+
+        # 関数02
+        ep_info = self._build_ep_info(temp_dir)
+        file_logger.info("2. urlとfilenameの構築、完了。")
+        self.stdout("2. urlとfilenameの構築、完了。")
+
+        # フェーズ03
+        if not asyncio.run(self._download_and_save_all_indexes(ep_info)):
+            self.stderr.write("ID ファイル生成に失敗しました")
             return
-        s_ep, p_ep, f_ep = self.get_base_url()
 
-        dir_path = Path(__file__).resolve().parent.parent.parent / "temp"
-        dir_path.mkdir(exist_ok=True)
+        # フェーズ04
+        file_totals = self._get_file_totals(ep_info)
 
-        s_file_path = dir_path / "species_idxs.txt"
-        p_file_path = dir_path / "pokemon_idxs.txt"
-        f_file_path = dir_path / "form_idxs.txt"
+        # フェーズ05
+        api_counts  = asyncio.run(self._fetch_api_counts(ep_info))
 
-        result = asyncio.run(self.request_of_urls(s_ep, p_ep, f_ep, s_file_path, p_file_path, f_file_path))
+        # フェーズ06
+        self._validate_counts(api_counts, file_totals)
 
-        s_total, p_total, f_total = self.get_totals(s_file_path, p_file_path, f_file_path)
-        s_count, p_count, f_count = asyncio.run(self.get_counts(s_ep, p_ep, f_ep))
-
-
-        if result:
-            self.stdout.write("Index files have been created successfully.")
-        else:
-            self.stderr.write("An error occurred while creating index files.")
         logger.finish("処理完了")
 
+    # ----------------------------------------
+    # フェーズ01: using=Trueの確認
+    # ----------------------------------------
+    def _check_flags(self) -> bool:
 
 
-    def check_using_flag(self):
-        names = ["pokemon-species", "pokemon", "pokemon-form"]
-        flag_names = Endpoint.objects.filter(using=True).values_list("name", flat=True)
-        for name in names:
-            if name not in flag_names:
-                raise ValueError(f"{name}で、using=Trueが設定されていません。")
+        # ファイル冒頭の定数から登録名を取得。setであることに注意。
+        constant_ep_names = {name for _, name in EP_TYPES}
+         # ep_registryアプリで登録されたものをadmin画面から有効にする。
+        active_ep_names = set(
+            Endpoint.objects.filter(using=True).values_list("name", flat=True)
+        )
+        # set = set - set
+        inactive_ep_names = constant_ep_names - active_ep_names
+
+        if not inactive_ep_names:
+            return True
+
+        # spfの順に並び替える。
+        if inactive_ep_names:
+            ordered_inactive_ep_names = [
+                name for _, name in EP_TYPES if name in inactive_ep_names
+            ]
+            # spfが全て有効化されていれていなければ終了
+            file_logger.fairue("using=True 未設定: " + ", ".join(orderd_inactive_ep_names))
+            raise ValueError("using=True 未設定: " + ", ".join(orderd_inactive_ep_names))
+
+    # ----------------------------------------
+    # Endpoint 情報を辞書化
+    # ----------------------------------------
+    def _build_ep_info(self, temp_dir: Path) -> dict[str, dict[str, str | Path]]:
+
+        ep_info: dict[str, dict[str, str | Path]] = {}
+
+        # fmt_nameは、"species","pokemon","form"の三つ。
+        for fmt_name, ep_name in EP_TYPES:
+            # first()???
+            url = Endpoint.objects.filter(name=ep_name).values_list("url", flat=True).first()
+
+            # ep_nameが一つでも見つからなければ終了。
+            if not url:
+                file_logger.failure(f"Endpoint '{ep_name}' が見つかりません。")
+                raise ValueError(f"Endpoint '{ep_name}' が見つかりません。")
+
+            # fileは次のコマンドで削除されるので、temp。
+            ep_info[fmt_name] = {
+                "url": url,
+                "temp_file": temp_dir / f"{fmt_name}_idxs.txt",
+            }
+        # spfの全てのデータをreturn
+        return ep_info
+
+    # ----------------------------------------
+    # すべての idx をダウンロードして保存
+    # ----------------------------------------
+    async def _download_and_save_all_indexes(self, ep_info: dict[str, dict]) -> bool:
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                self._download_and_save(v["url"], v["file"], session)
+                for v in ep_info.values()
+            ]
+            return all(await asyncio.gather(*tasks))
+
+    async def _download_and_save_all_indexes(self, ep_info: dict[str, dict]) -> bool:
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                self._download_and_save(v["url"], v["file"], session)
+                for v in ep_info.values()
+            ]
+            if all(await asyncio.gather(*tasks)):
+                file_logger.succes("")
+                self.stdout.write("")
+
+    async def _download_and_save(self, ep_url: str, file_path: Path, session: aiohttp.ClientSession) -> None:
+        url = f"{ep_url}?limit=3000"
+        indexes: list[int] = []
+
+        while url:
+            retry = 1
+            # 試行ループ：最大6回（1～5回目）
+            while retry <= 5:
+                try:
+                    async with session.get(url) as res:
+                        if res.status != 200:
+                            file_logger.failure(f"{url} にて {res.status}")
+                            retry += 1
+                            continue
+
+                        data = await res.json()
+                        urls = [entry["url"] for entry in data.get("results", [])]
+
+                        if not urls:
+                            file_logger.failure("URLが含まれていません。調査してください。")
+                            self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                            return False
+
+                        # URLチェック
+                        for url in urls:
+                            if not u.startswith("https://pokeapi.co/"):
+                                file_logger.failure("未知のURLを検出。調査してください。")
+                                self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                                return False
+
+                        # インデックス抽出＆変換
+                        indexes_str = [u.rstrip("/").split("/")[-1] for u in urls]
+                        try:
+                            indexes_int = [int(s) for s in indexes_str]
+                        except ValueError:
+                            file_logger.failure("URLの末尾に数字がありませんでした。調査してください。")
+                            self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                            return False
+
+                        indexes.extend(indexes_int)
+
+                        next_url = data.get("next")
+                        if isinstance(next_url, str) and next_url.startswith("https://pokeapi.co/"):
+                            url = next_url
+                        else:
+                            url = None
+
+                        self.stdout.write("進行中…\n")
+                        break  # 試行ループ脱出、外側のループへ。
+                except Exception as e:
+                    file_logger.failure(f"Fetch error {url}: {e}")
+                    file_logger.info("Time sleep 3 seconds.")
+                    await asyncio.sleep(3)
+                    file_logger.info(f"{url}について再取得を試みます。")
+                    retry += 1
+            else:
+                # retryが上限を超えた場合
+                file_logger.failure(f"最大リトライ回数を超えました: {url}")
+                self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                return False
+
+        # 収集したすべてのindexを書き出し
+        file_path.write_text(
+            "\n".join(map(str, sorted(indexes))),
+            encoding="utf-8"
+        )
+        logger.success(f"{file_path.name} を保存 ({len(indexes)} 行)")
         return True
 
-    def get_base_url(self):
-        s_ep = Endpoint.objects.filter(name="pokemon-species").values_list("url", flat=True).first()
-        p_ep = Endpoint.objects.filter(name="pokemon").values_list("url", flat=True).first()
-        f_ep = Endpoint.objects.filter(name="pokemon-form").values_list("url", flat=True).first()
-        if not s_ep or not p_ep or not f_ep:
-            raise ValueError("必要なエンドポイントが見つかりません。")
-        return s_ep, p_ep, f_ep
-
-    async def request_of_urls(self, s_ep, p_ep, f_ep, s_file_path, p_file_path, f_file_path):
+    # ----------------------------------------
+    # API count を取得
+    # ----------------------------------------
+    async def _fetch_api_counts(self, ep_info: dict[str, dict]) -> dict[str, int]:
         async with aiohttp.ClientSession() as session:
-            tasks = [
-                self.get_existing_idxs(s_ep, s_file_path, session),
-                self.get_existing_idxs(p_ep, p_file_path, session),
-                self.get_existing_idxs(f_ep, f_file_path, session)
-            ]
-            results = await asyncio.gather(*tasks)
-            if all(results):
-                self.stdout.write("All index files have been successfully created.")
-                return True
-            else:
-                self.stderr.write("An error occurred while creating index files.")
-                return False
+            tasks = {
+                key: self._fetch_count(d["url"], session) for key, d in ep_info.items()
+            }
+            counts = await asyncio.gather(*tasks.values())
+            return dict(zip(tasks.keys(), counts))
 
-    async def get_existing_idxs(self, base_url, filepath, session):
-        existing_idxs = set()
-        url = f"{base_url}?limit=3000"
-        while True:
-            try:
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        for item in data["results"]:
-                            idx = int(item["url"].split("/")[-2])
-                            existing_idxs.add(idx)
-                        url = data.get("next", None)
-                        # print("get next url !") <= デバッグ用
-                        if not url:
-                            with open(filepath, "w", encoding="utf-8") as file:
-                                file.write("\n".join(map(str, sorted(existing_idxs))))
-                            return True
-            except Exception as e:
-                self.stderr.write(f"Error fetching {base_url}: {e}")
-                return False
-
-    def get_totals(self, s_file_path, p_file_path, f_file_path):
+    async def _fetch_count(
+        self, url: str, session: aiohttp.ClientSession
+    ) -> int:
         try:
-            with open(s_file_path, "r", encoding="utf-8") as file:
-                s_total = len(file.readlines())
-            with open(p_file_path, "r", encoding="utf-8") as file:
-                p_total = len(file.readlines())
-            with open(f_file_path, "r", encoding="utf-8") as file:
-                f_total = len(file.readlines())
-            return s_total, p_total, f_total
-        except FileNotFoundError as e:
-            self.stderr.write(f"File not found: {e}")
-            return 0, 0, 0
-
-    async with def get_counts(self, s_url, p_url, f_url):
-        async with aiohttp.ClientSession() as session:
-            tasks = [
-                self.get_count(s_url, session),
-                self.get_count(p_url, session),
-                self.get_count(f_url, session)
-            ]
-        return s_count, p_count, f_count = await asyncio.gather(*tasks)
-
-    async with def get_count(self, url, session):
-        count = 0
-        try:
-            with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    count = data["count"]
+            async with session.get(url) as res:
+                if res.status == 200:
+                    return int((await res.json())["count"])
         except Exception as e:
-            self.stderr.write(f"Error fetching count from {url}: {e}")
-        return count
+            logger.failure(f"Count fetch error {url}: {e}")
+        return 0
+
+    # ----------------------------------------
+    # ファイル行数を取得
+    # ----------------------------------------
+    def _get_file_totals(self, ep_info: dict[str, dict]) -> dict[str, int]:
+        totals: dict[str, int] = {}
+        for key, entry in ep_info.items():
+            try:
+                totals[key] = len(entry["file"].read_text(encoding="utf-8").splitlines())
+            except FileNotFoundError:
+                totals[key] = 0
+        return totals
+
+    # ----------------------------------------
+    # count と total の一致を検証
+    # ----------------------------------------
+    def _validate_counts(
+        self,
+        api_counts: dict[str, int],
+        file_totals: dict[str, int],
+    ) -> None:
+        mismatch_found = False
+        for key in api_counts:
+            api = api_counts[key]
+            total = file_totals[key]
+            if api != total:
+                mismatch_found = True
+                msg = f"[不一致] {key:<7} api={api} total={total}"
+                logger.warning(msg)
+                self.stderr.write(msg + "\n")
+            else:
+                logger.success(f"[一致]   {key:<7} api=total={api}")
+
+        if not mismatch_found:
+            self.stdout.write("すべて一致しました\n")
