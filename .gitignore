@@ -27,4 +27,5 @@ Thumbs.db
 *.code-workspace
 
 _lesson/
-migrations/
+**/migrations/*
+!**/migrations/__init__.py
