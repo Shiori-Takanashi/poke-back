@@ -20,13 +20,11 @@ env/
 .DS_Store
 Thumbs.db
 
-# テンポラリディレクトリ（fetch_pokemon/temp など）
-fetch_pokemon/temp/
-ep_registry/temp/
 
 # IDE / エディタ関連
 .vscode/
 .idea/
 *.code-workspace
 
-_lesson/*
+_lesson/
+migrations/*
