@@ -9,6 +9,7 @@ venv/
 ENV/
 env/
 .Python
+.venv
 
 # 実行時一時ファイル・ログ
 *.tmp
