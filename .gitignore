@@ -31,4 +31,4 @@ _lesson/
 **/migrations/*
 !**/migrations/__init__.py
 
-./utils/del_pokeback.sh
+/utils/del_pokeback.sh
