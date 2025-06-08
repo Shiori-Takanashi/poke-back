@@ -50,13 +50,13 @@ def finish(self, label="処理"):
 
 # ロガーへのメソッド追加（重複回避）
 if not hasattr(logging.Logger, "success"):
-    logging.Logger.success = success
+    logging.Logger.success = success # type: ignore[attr-defined]
 if not hasattr(logging.Logger, "failure"):
-    logging.Logger.failure = failure
+    logging.Logger.failure = failure # type: ignore[attr-defined]
 if not hasattr(logging.Logger, "start"):
-    logging.Logger.start = start
+    logging.Logger.start = start # type: ignore[attr-defined]
 if not hasattr(logging.Logger, "finish"):
-    logging.Logger.finish = finish
+    logging.Logger.finish = finish # type: ignore[attr-defined]
 
 # ロガーをセットアップする関数
 def setup_logger_file(app_name: str, base_log_dir: Path = Path("logs"), level=logging.DEBUG) -> logging.Logger:
