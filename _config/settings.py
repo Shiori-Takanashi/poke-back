@@ -77,14 +77,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = '_config.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# データベース変更 （2025/06/08）
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'pokeback',
+        'USER': 'shiori',
+        'PASSWORD': 'Obear0311',
+        'HOST': 'localhost',
+        'PORT': '5432',        # PostgreSQLのデフォルトポート
     }
 }
 
