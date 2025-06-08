@@ -58,8 +58,10 @@ class Command(BaseCommand):
         self.stdout("2. urlとfilenameの構築、完了。")
 
         # フェーズ03
-        if not asyncio.run(self._download_and_save_all_indexes(ep_info)):
-            self.stderr.write("ID ファイル生成に失敗しました")
+        if asyncio.run(self._download_and_save_all_indexes(ep_info)):
+            file_logger.info("3. IDファイルのダウンロード、完了。")
+            self.stdout("3. IDファイルのダウンロード、完了。")
+        else:
             return
 
         # フェーズ04
@@ -134,17 +136,16 @@ class Command(BaseCommand):
                 self._download_and_save(v["url"], v["file"], session)
                 for v in ep_info.values()
             ]
-            return all(await asyncio.gather(*tasks))
+            results = await asyncio.gather(*tasks)
+            if not all(results):
+                file_logger.failure("3. IDファイルのダウンロードに失敗しました。")
+                self.stderr.write("3. フェーズ03にてエラー発生。\n")
+                return False
+            return True
 
-    async def _download_and_save_all_indexes(self, ep_info: dict[str, dict]) -> bool:
-        async with aiohttp.ClientSession() as session:
-            tasks = [
-                self._download_and_save(v["url"], v["file"], session)
-                for v in ep_info.values()
-            ]
-            if all(await asyncio.gather(*tasks)):
-                file_logger.succes("")
-                self.stdout.write("")
+
+
+
 
     async def _download_and_save(self, ep_url: str, file_path: Path, session: aiohttp.ClientSession) -> None:
         url = f"{ep_url}?limit=3000"
@@ -166,14 +167,14 @@ class Command(BaseCommand):
 
                         if not urls:
                             file_logger.failure("URLが含まれていません。調査してください。")
-                            self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                            self.stderr.write("2. フェーズ02にてエラー発生。\n")
                             return False
 
                         # URLチェック
                         for url in urls:
                             if not u.startswith("https://pokeapi.co/"):
                                 file_logger.failure("未知のURLを検出。調査してください。")
-                                self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                                self.stderr.write("2. フェーズ02にてエラー発生。\n")
                                 return False
 
                         # インデックス抽出＆変換
@@ -182,7 +183,7 @@ class Command(BaseCommand):
                             indexes_int = [int(s) for s in indexes_str]
                         except ValueError:
                             file_logger.failure("URLの末尾に数字がありませんでした。調査してください。")
-                            self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                            self.stderr.write("2. フェーズ02にてエラー発生。\n")
                             return False
 
                         indexes.extend(indexes_int)
@@ -204,16 +205,19 @@ class Command(BaseCommand):
             else:
                 # retryが上限を超えた場合
                 file_logger.failure(f"最大リトライ回数を超えました: {url}")
-                self.stdout.write("2. フェーズ02にてエラー発生。\n")
+                self.stderr.write("2. フェーズ02にてエラー発生。\n")
                 return False
 
         # 収集したすべてのindexを書き出し
-        file_path.write_text(
-            "\n".join(map(str, sorted(indexes))),
-            encoding="utf-8"
-        )
-        logger.success(f"{file_path.name} を保存 ({len(indexes)} 行)")
-        return True
+        try:
+            file_path.write_text(
+                "\n".join(map(str, sorted(indexes))),
+                encoding="utf-8"
+            )
+        except FileNotFoundError:
+            return
+        file_logger.success(f"{file_path.name} を保存 ({len(indexes)} 行)")
+        return
 
     # ----------------------------------------
     # API count を取得
